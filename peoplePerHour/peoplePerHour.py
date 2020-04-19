@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 baseURL = "https://www.peopleperhour.com/freelance-jobs/software-development?page="
-pageNo = 2
+pageNo = 1
 
 
 lastPage = None
