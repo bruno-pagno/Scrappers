@@ -8,11 +8,8 @@ import csv
 driver = webdriver.Firefox()
 driver.get("https://www.workana.com/login")
 
-email = 'Your Workana Email goes here'
-password = 'Your Workana Password goes here'
-
-driver.execute_script("$('.form-control')[1].value = 'brunodesousapagno@gmail.com'");
-driver.execute_script("$('.form-control')[2].value = 'mypassword'");
+driver.execute_script("$('.form-control')[1].value = 'Your Workana Email goes here'");
+driver.execute_script("$('.form-control')[2].value = 'Your Workana Password goes here'");
 driver.execute_script("document.forms[0].submit()");
 
 pageNo = 1
@@ -41,16 +38,19 @@ while True:
             count = count+1
 
             title = project.find('h2', {"class" : "project-title"}).text
+            link = project.find_all('a')[0]['href']
             description = project.find('div', {"class":"project-details"}).text
+            author = project.find('span', {"class":"author-info"}).text
             value = project.find('span', {"class":"values"}).text
 
             data = {
                 "title": title.encode('utf-8'),
+                "link": 'workana.com' + str(link).encode('utf-8'),
                 "description": description.encode('utf-8'),
-                "value": value.encode('utf-8'),
+                "author": author.split(':')[1].encode('utf-8'),
+                "value": value.encode('utf-8').encode('utf-8'),
             }
 
-            # print(data)
             projects.append(data)
 
 
@@ -61,7 +61,7 @@ driver.close()
 
 print("Writing data to Csv file...")
 
-csv_columns = ['title','description','value']
+csv_columns = ['title','link', 'description','author', 'value']
 csv_file = "./results.csv"
 
 try:
