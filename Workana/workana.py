@@ -1,58 +1,74 @@
-import requests
+from selenium import webdriver
 from bs4 import BeautifulSoup
-from credentials import * # Import your credentials from credentials.py to be able to Login (Variables are login and password)
+import time
+import csv
 
-def login(): # Login on the site, to be able to gather more information
-    URL = "https://www.workana.com/login"
+# Login into Workana
 
-    headers = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36'}
+driver = webdriver.Firefox()
+driver.get("https://www.workana.com/login")
 
-    data = {
-        'email': login,
-        'password': password,
-        'remember': 1
-    }
+email = 'Your Workana Email goes here'
+password = 'Your Workana Password goes here'
 
-    page = requests.post(URL, data=data, headers=headers)
-    soup = BeautifulSoup(page.content, 'html.parser');
-    
-    print(page.status_code)
-    print(soup.prettify())
+driver.execute_script("$('.form-control')[1].value = 'brunodesousapagno@gmail.com'");
+driver.execute_script("$('.form-control')[2].value = 'mypassword'");
+driver.execute_script("document.forms[0].submit()");
 
+pageNo = 1
+count = 1
+time.sleep(5)
 
-def scrapper():
-    baseURL = 'https://www.workana.com/jobs?ref=menu_projects_index&language=en%2Cpt&category=it-programming&page=' 
-    count = 1
-    pageNo = 1
+projects = []
 
-    while True:
-        URL = baseURL + str(pageNo) # Creates the URL
-        pageNo= pageNo + 1
-        page = requests.get(URL)    # Request for the site                                     
+# Navigating pages and scrapping 
+while True:
+	driver.get('https://www.workana.com/jobs?ref=menu_projects_index&language=en%2Cpt&category=it-programming&page=' + str(pageNo))
+	time.sleep(2)
+	print('actual Page:', pageNo)
+	soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-        if page.status_code != 200: # While it find valid pages
-            break
+	# Verifying if the scrapper has ended
+	if soup.find('img', {"class" : "img-responsive img center-block"}) :
+		print('end of the scrapper')
+		break
 
-        soup = BeautifulSoup(page.content, 'html.parser');
-        divs = soup.find_all('div', {"class" : "project-item"})   # Find all div tags for projects
-        
-        for div in divs:
+	
+	# Scrapping Projects from the page
+	project_divs = soup.find_all('div', {"class" : "project-item"})   # Find all div tags for projects
+        for project in project_divs:
             print("Project {}".format(count))
             count = count+1
 
-            title = div.find('h2', {"class" : "project-title"}).text
-            desc = div.find('div', {"class":"project-details"}).text
-            value = div.find('span', {"class":"values"}).text
+            title = project.find('h2', {"class" : "project-title"}).text
+            description = project.find('div', {"class":"project-details"}).text
+            value = project.find('span', {"class":"values"}).text
 
-            print(title)
-            print("Description:" + desc + "\n")
-            print("Budget: " + value)
-            print("\n\n");
-            
-    print("End of the Scrapper.")
+            data = {
+                "title": title.encode('utf-8'),
+                "description": description.encode('utf-8'),
+                "value": value.encode('utf-8'),
+            }
 
-def main():
-    # scrapper()
-    login()
+            # print(data)
+            projects.append(data)
 
-main()
+
+	pageNo+=1;
+
+
+driver.close()
+
+print("Writing data to Csv file...")
+
+csv_columns = ['title','description','value']
+csv_file = "./results.csv"
+
+try:
+    with open(csv_file, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+        writer.writeheader()
+        for p in projects:
+            writer.writerow(p)
+except IOError:
+    print("I/O error")
